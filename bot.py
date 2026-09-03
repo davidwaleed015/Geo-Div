@@ -17,7 +17,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen.canvas import Canvas
 from pyproj import Transformer
 
-TOKEN = "8921273332:AAGN3d_lTW8n-enUGrQ634GaoL4UbzVZHs"
+TOKEN = "8921273332:AAENDoiDg1LDW-uFuaryj_N3xlQFdm9xyQ0"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
