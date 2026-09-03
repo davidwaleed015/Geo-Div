@@ -11,8 +11,7 @@ from aiohttp import web
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import WebAppInfo
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen.canvas import Canvas
 from pyproj import Transformer
@@ -23,7 +22,6 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# قاعدة البيانات المحلية SQLite لتسجيل عمليات الفحص
 def init_db():
     conn = sqlite3.connect("geospatial_bot.db")
     cursor = conn.cursor()
@@ -52,7 +50,6 @@ def log_search_to_db(user_id, lat, lon, easting, northing, status):
     conn.commit()
     conn.close()
 
-# خوارزمية التحليل الجيوفيزيائي والآثاري المتقدمة (تشمل عزل الفراغات، المغناطيسية، والاضطراب البشري)
 def advanced_spatial_buffer_analysis(lat, lon, buffer_radius_m=5.0):
     zone = int((lon + 180) / 6) + 1
     hemisphere = "N" if lat >= 0 else "S"
@@ -80,7 +77,7 @@ def advanced_spatial_buffer_analysis(lat, lon, buffer_radius_m=5.0):
             test_n = center_northing + r * np.sin(rad)
             
             sdi = float(np.abs(np.sin(test_e / 50.0)) * 1.0)
-            local_gpr = float(1.5 + np.abs(np.cos(test_n / 40.0)) * 1.5) # ثابت عزل منخفض للفراغات والمقابر (1 إلى 3)
+            local_gpr = float(1.5 + np.abs(np.cos(test_n / 40.0)) * 1.5)
             
             gradient_x = float(np.sin(test_e / 30.0) * 25.0)
             gradient_y = float(np.cos(test_n / 30.0) * 25.0)
@@ -133,7 +130,6 @@ def advanced_spatial_buffer_analysis(lat, lon, buffer_radius_m=5.0):
         "summary_conclusion": anomaly_status
     }
 
-# توليد المخطط البياني الطيفي
 def generate_chart_image(data):
     fig, ax = plt.subplots(figsize=(6, 3))
     categories = ['Center Mag (nT)', 'Center GPR', 'Buffer Max Mag', 'Buffer Max GPR']
@@ -150,7 +146,6 @@ def generate_chart_image(data):
     plt.close()
     return chart_path
 
-# توليد التقرير الهندسي الشامل بصيغة PDF
 def generate_comprehensive_pdf(data, chart_path):
     filename = "Comprehensive_Archaeological_Analysis.pdf"
     c = Canvas(filename, pagesize=letter)
@@ -197,7 +192,6 @@ def generate_comprehensive_pdf(data, chart_path):
     c.save()
     return filename
 
-# توليد ملف KML للفتح الفوري على Google Earth أو ArcGIS Pro
 def generate_kml_file(data):
     kml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -223,29 +217,17 @@ def generate_kml_file(data):
         f.write(kml_content)
     return kml_filename
 
-# واجهة تفاعل البوت والأوامر
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📍 أرسل موقعي الحالي (GPS)", request_location=True)
-    builder.button(text="🗺️ حدد من الخريطة التفاعلية", web_app=WebAppInfo(url="https://your-map-hosting-domain.com/map.html"))
-    builder.adjust(1)
-    await message.answer(
-        "مرحباً بك يا ديفيد في منظومة الكشف الآثاري والجيزفيزيائي المطورة (المقابر، الدفائن، والسبائك).\n"
-        "اختر طريقة التحديد أو أرسل الإحداثيات نصياً لبدء الفحص الميداني:",
-        reply_markup=builder.as_markup()
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📍 أرسل موقعي الحالي (GPS)", request_location=True)]],
+        resize_keyboard=True
     )
-
-# استقبال بيانات الخريطة التفاعلية (Web App)
-@dp.message(F.web_app_data)
-async def handle_web_app_coordinates(message: types.Message):
-    try:
-        data = json.loads(message.web_app_data.data)
-        lat = float(data.get("lat"))
-        lon = float(data.get("lon"))
-        await process_geospatial_request(message, lat, lon)
-    except Exception:
-        await message.answer("حدث خطأ في قراءة إحداثيات الخريطة التفاعلية.")
+    await message.answer(
+        "مرحباً بك يا ديفيد في منظومة الكشف الآثاري والجيوفيزيائي المطورة.\n"
+        "اضغط على الزر أدناه لإرسال موقعك الجغرافي أو أرسل الإحداثيات نصياً (Latitude, Longitude) لبدء الفحص:",
+        reply_markup=kb
+    )
 
 @dp.message(F.location)
 async def handle_live_location(message: types.Message):
@@ -263,12 +245,12 @@ async def handle_text_coordinates(message: types.Message):
             lon = float(parts[1])
             await process_geospatial_request(message, lat, lon)
         else:
-            await message.answer("يرجى إرسال الإحداثيات بالصيغة الصحيحة: `Latitude, Longitude`")
+            await message.answer("يرجى إرسال الإحداثيات بالصيغة الصحيحة: `Latitude, Longitude` أو اضغط زر إرسال الموقع.")
     except ValueError:
         await message.answer("خطأ في قراءة القيم الرقمية للإحداثيات.")
 
 async def process_geospatial_request(message: types.Message, lat: float, lon: float):
-    await message.answer("جاري جلب الخريطة، تطبيق إسقاط UTM، فحص ثابت العزل الكهربائي للفراغات، وتحليل البصمة المغناطيسية للدفائن...")
+    await message.answer("جاري تطبيق إسقاط UTM، فحص ثابت العزل الكهربائي للفراغات، وتحليل البصمة المغناطيسية للدفائن...")
     
     analysis_data = advanced_spatial_buffer_analysis(lat, lon, buffer_radius_m=5.0)
     log_search_to_db(message.from_user.id, lat, lon, analysis_data['center_easting'], analysis_data['center_northing'], analysis_data['summary_conclusion'])
@@ -293,7 +275,6 @@ async def process_geospatial_request(message: types.Message, lat: float, lon: fl
             except:
                 pass
 
-# خادم الويب السحابي للاستضافة المستمرة (24/7 Keep-Alive Server)
 async def handle_web(request):
     return web.Response(text="Archaeological Prospecting Bot is running 24/7 successfully!")
 
