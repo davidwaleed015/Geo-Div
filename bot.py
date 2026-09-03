@@ -185,7 +185,10 @@ def generate_comprehensive_pdf(data, chart_path):
     c.setFont("Helvetica-Bold", 9)
     c.drawString(40, height - 330, "3. Final Definitive Summary Conclusion:")
     c.setFont("Helvetica-Bold", 9)
-    c.setFillColorRGB(0.8, 0.1, 0.1) if "Positive" in data['summary_conclusion'] else c.setFillColorRGB(0.1, 0.5, 0.1)
+    if "Positive" in data['summary_conclusion']:
+        c.setFillColorRGB(0.8, 0.1, 0.1)
+    else:
+        c.setFillColorRGB(0.1, 0.5, 0.1)
     c.drawString(50, height - 347, f"FINAL RESULT: {data['summary_conclusion']}")
     
     c.setFillColorRGB(0, 0, 0)
@@ -228,7 +231,7 @@ async def cmd_start(message: types.Message):
     builder.button(text="🗺️ حدد من الخريطة التفاعلية", web_app=WebAppInfo(url="https://your-map-hosting-domain.com/map.html"))
     builder.adjust(1)
     await message.answer(
-        "مرحباً بك يا ديفيد في منظومة الكشف الآثاري والجيوفيزيائي المطورة (المقابر، الدفائن، والسبائك).\n"
+        "مرحباً بك يا ديفيد في منظومة الكشف الآثاري والجيزفيزيائي المطورة (المقابر، الدفائن، والسبائك).\n"
         "اختر طريقة التحديد أو أرسل الإحداثيات نصياً لبدء الفحص الميداني:",
         reply_markup=builder.as_markup()
     )
