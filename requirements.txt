@@ -1,0 +1,7 @@
+aiogram
+aiohttp
+numpy
+matplotlib
+reportlab
+pyproj
+shapely
